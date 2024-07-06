@@ -1,11 +1,11 @@
 import jax.numpy as jnp
 import flax.linen as nn
-from einops import einsum, rearrange, repeat, reduce
+from einops import einsum, rearrange, reduce
 
-from ml_copypasta.layers.ndrope import NDRoPE
+from ml_copypasta.layers.rope import RoPE
 
 
-class NDGroupedQueryAttention(nn.Module):
+class GroupedQueryAttention(nn.Module):
     """https://arxiv.org/pdf/2305.13245"""
 
     q_heads: int
@@ -16,9 +16,7 @@ class NDGroupedQueryAttention(nn.Module):
     def __call__(
         self,
         q: jnp.ndarray,
-        q_coords: jnp.ndarray,
         kv: jnp.ndarray,
-        kv_coords: jnp.ndarray,
     ):
         assert (
             self.q_heads >= self.kv_heads
@@ -42,11 +40,8 @@ class NDGroupedQueryAttention(nn.Module):
         k = rearrange(k, "... s h d -> ... h s d")
         v = rearrange(v, "... s h d -> ... h s d")
 
-        rope = NDRoPE()
-        q_coords = repeat(q_coords, "... s a -> ... g h s a", g=groups, h=self.kv_heads)
-        kv_coords = repeat(kv_coords, "... s a -> ... h s a", h=self.kv_heads)
-        q = rope(q, q_coords)
-        k = rope(k, kv_coords)
+        q = RoPE()(q)
+        k = RoPE()(k)
 
         scores = einsum(q, k, "... g h s d, ... h a d -> ... h s a")
         scale = head_dim**0.5
@@ -62,14 +57,11 @@ class NDGroupedQueryAttention(nn.Module):
 if __name__ == "__main__":
     import jax
 
-    W, H = 8, 4
-    img = jnp.ones((1, H, W, 3))
-    img = rearrange(img, "b h w c -> b (h w) c")
-    coords = jnp.array([(y, x) for y in range(H) for x in range(W)])[None]
+    seq = jnp.ones((1, 8, 4))
 
-    layer = NDGroupedQueryAttention(4, 2, 32)
-    variables = layer.init(jax.random.key(0), img, coords, img, coords)
+    layer = GroupedQueryAttention(4, 2, 32)
+    variables = layer.init(jax.random.key(0), seq, seq)
 
-    out = layer.apply(variables, img, coords, img, coords)
+    out = layer.apply(variables, seq, seq)
 
     print(out)
