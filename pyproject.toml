@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "ml-copypasta"
+version = "0.1.0"
+description = "ML implementations for easy experimentation and research."
+authors = ["JirkaKlimes <jiriklimes920@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+jax = {extras = ["cuda12"], version = "^0.4.30"}
+flax = "^0.8.5"
+optax = "^0.2.2"
+einops = "^0.8.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
