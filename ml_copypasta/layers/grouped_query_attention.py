@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 import flax.linen as nn
-from einops import einsum, rearrange, reduce
+from einops import einsum, rearrange
 
 from ml_copypasta.layers.rope import RoPE
 
@@ -42,8 +42,7 @@ class GroupedQueryAttention(nn.Module):
         attention = nn.softmax(scores / scale)
 
         out = einsum(attention, v, "... h s a, ... h a d -> ... h s d")
-        out = rearrange(out, "... h s d -> ... s h d")
-        out = reduce(out, "... s h d -> ... s d", "mean")
+        out = rearrange(out, "... h s d -> ... s (h d)")
         out = nn.Dense(in_dim, use_bias=False)(out)
         return out
 
